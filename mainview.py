@@ -1,6 +1,7 @@
 from app import application
 from flask import request
 
+from models import Users
 import json
 
 # префиксы в именах переменных используются в основном для того, чтобы
@@ -13,9 +14,8 @@ import json
 
 @application.route('/')
 def index():
-    return ''.join(['Главная страница пока не планируется.\n',
-                    ' Обратитесь к администрации WinSy\n',
-                    ' для получения карты сайта'])
+    return json.dumps({'status': '1',
+                       'reason': 'API is active'})
 
 
 @application.route('/register', methods=['GET', 'POST'])
@@ -28,18 +28,16 @@ def register():
 
 @application.route('/login', methods=['GET', 'POST'])
 def login():
-    return 'Вход ещё не готов'
-    d_requsest = request.json
-    with open('whitelist.json', 'r') as f_whitelist:
-        d_whitelist = json.load(f_whitelist)
+    json_request = request.json # нужно проверить метод запроса и его тело
 
-    s_username = d_requsest['username']
-    s_request_password = d_requsest['password']
-    s_whitelist_password = d_whitelist[s_username]
-    if s_whitelist_password != s_request_password:
-        return 'Введён неверный пароль'
-    else:
-        return 'Вход выполнен'
+    recieved_user = Users.query.filter(Users.username == json_request['username']).first() # может быть 2 пользователя с одним именем # пользователь может не существовать
+    if recieved_user.password != json_request['password']:
+        return json.dumps({'status': '0',
+                           'reason': 'invalid password'})
+
+    return json.dumps({'status': '1',
+                       'reason': 'successful login'})
+
 
 @application.route('/chat')
 def chatlist():
@@ -53,10 +51,8 @@ def chat():
         d_whitelist = json.load(f_whitelist)
 
 
-
 @application.errorhandler(404)
 def page_not_found(e):
-    print('Got json:', request.json)
     return ''.join(['Страница не найдена. Убедитесь, что:\n',
                     '1. Это не прикол\n',
                     '2. Адрес написан правильно\n',
@@ -64,7 +60,11 @@ def page_not_found(e):
                     ' тому, кто её сделал']), 404
 
 
+'''
 @application.errorhandler(400)
 def bad_request(e):
-    print('Got json:', request.json)
     return 'Возникла ошибка запроса со стороны клиента. Обратитесь к тому, кто такое посмел допустить. Если вы не уверены, кто это может быть, обратитесь к администрации WinSy c настолько подробным описанием проблемы, насколько вы можете себе позволить', 400
+'''
+
+if __name__ == '__main__':
+    application.run()

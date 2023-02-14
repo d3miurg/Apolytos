@@ -1,5 +1,4 @@
 *.sublime*
 *.txt
--reqs.txt
 *.json
 __pycache__/

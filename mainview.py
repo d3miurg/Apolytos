@@ -1,4 +1,5 @@
 from app import application
+from app import database
 from flask import request
 
 from models import Users
@@ -20,10 +21,13 @@ def index():
 
 @application.route('/register', methods=['GET', 'POST'])
 def register():
-    return 'Регистрация ещё не готова'
-    d_requsest = request.json
-    with open('whitelist.json', 'r') as f_whitelist:
-        d_whitelist = json.load(f_whitelist)
+    # return 'Регистрация ещё не готова'
+    json_request = request.json
+    new_user = Users(username=json_request['username'], password=json_request['password'], slug=json_request['username']) # проверить регистрацию # проверить правильность заполнения формы
+    database.session.add(new_user) # убедиться, что база работает
+    database.session.commit()
+    return json.dumps({'status': '1',
+                       'reason': 'successful register'})
 
 
 @application.route('/login', methods=['GET', 'POST'])
@@ -42,6 +46,7 @@ def login():
 @application.route('/chat')
 def chatlist():
     return 'Список чатов ещё не готов'
+
 
 @application.route('/chat/<slug>', methods=['GET', 'POST'])
 def chat():

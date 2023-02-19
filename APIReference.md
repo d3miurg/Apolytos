@@ -19,7 +19,11 @@
 	{
 	}
 >
->**Ответ:** {standart_responce}
+>**Ответ:** 
+>
+	{
+	standart_responce
+	}
 
 ---
 
@@ -30,11 +34,15 @@
 >**Запрос:**
 >
 	{
-	"username",
-	"password"
+	"username": имя пользователя
+	"password": пароль
 	}
 >
->**Ответ:** {standart_responce}
+>**Ответ:** 
+>
+	{
+	standart_responce
+	}
 
 ---
 
@@ -45,8 +53,29 @@
 >**Запрос:**
 >
 	{
-	"username",
-	"password"
+	"username": имя пользователя
+	"password": пароль
 	}
 >
->**Ответ:** {standart_responce}
+>**Ответ:** 
+>
+	{
+	standart_responce
+	}
+
+---
+
+### /chat
+
+Базовая страница для чатов. Возвращает список всех чатов
+
+>**Запрос:**
+>
+	{
+	}
+>
+>**Ответ:** 
+	{
+	standart_responce,
+	"chatlist": спикок уникальных ссылок чатов
+	}

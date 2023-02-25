@@ -1,17 +1,15 @@
+from app import application
+from app import database
 from flask import request
 from flask import jsonify
 from models import User
 from models import Chat
 from models import Message
-from app import application
-from app import database
-
-def construct_responce(reason, **additional): # переделать в декоратор для обработки json
-    pass
 
 
 @application.route('/')
 def index():
+    database.session.query().all()
     return jsonify({'status': '1',
                     'reason': 'api is active'})
 
@@ -19,9 +17,18 @@ def index():
 @application.route('/register', methods=['POST'])
 def register():
     json_request = request.json # нужно проверить метод запроса и его тело
+    required_keys = ['username', 'password', 'slug']
+    for key in required_keys:
+        if key not in json_request:
+            return jsonify({'status': '0',
+                            'reason': f'{key} is not in request JSON'})
+
+    if (len(json_request['password']) != 64):
+        return jsonify({'status': '0',
+                        'reason': 'password is not hashed'})
     new_user = User(username=json_request['username'],
-                    password=json_request['password'], # нельзя хранить голые пароли
-                    slug=json_request['username']) # проверить регистрацию # проверить правильность заполнения формы
+                    password=json_request['password'],
+                    slug=json_request['slug'])
     database.session.add(new_user) # убедиться, что база работает
     database.session.commit()
     return jsonify({'status': '1',

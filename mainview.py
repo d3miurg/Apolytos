@@ -5,18 +5,25 @@ from flask import jsonify
 from models import User
 from models import Chat
 from models import Message
+from sqlalchemy import exc
 
 
 @application.route('/')
 def index():
-    database.session.query().all()
+    try:
+        User.query.all()
+        Chat.query.all()
+        Message.query.all()
+    except exc.InterfaceError:
+        return jsonify({'status': '0',
+                        'reason': 'database is down'})
     return jsonify({'status': '1',
                     'reason': 'api is active'})
 
 
 @application.route('/register', methods=['POST'])
 def register():
-    json_request = request.json # нужно проверить метод запроса и его тело
+    json_request = request.json
     required_keys = ['username', 'password', 'slug']
     for key in required_keys:
         if key not in json_request:

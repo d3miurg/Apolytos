@@ -22,7 +22,7 @@ class User(database.Model):
     chats = database.relationship('Users_to_chats_relation',
                                   back_populates='user_relation')
 
-    def __repr__(self):
+    def __str__(self):
         return self.username
 
 
@@ -35,8 +35,8 @@ class Chat(database.Model):
     users = database.relationship('Users_to_chats_relation',
                                   back_populates='chat_relation')
 
-    def __repr__(self):
-        return self.name
+    def __str__(self):
+        return self.slug
 
 class Message(database.Model): # необходимы отношения
     __tablename__ = 'messages'
@@ -45,5 +45,5 @@ class Message(database.Model): # необходимы отношения
     author = database.Column(database.Integer)
     chat = database.Column(database.Integer)
 
-    def __repr__(self):
+    def __str__(self):
         return self.content

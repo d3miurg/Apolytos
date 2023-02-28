@@ -41,13 +41,13 @@
 >
 >**Запрос:**
 >
-	?username=имя пользователя;password=пароль
+	?username=имя пользователя&password=пароль
 >
 >**Ответ:** 
 >
 	{
 	standart_responce
-	"identity_token": токен идентификации
+	"auth_token": токен идентификации
 	"refresh_token": токен обновления
 	}
 
@@ -88,7 +88,6 @@
 >**Запрос:**
 >
 	{
-	"token": токен идентификации
 	}
 >
 >**Ответ:**
@@ -121,7 +120,8 @@
 >
 >**Ответ:**
 >
+	event stream
+	или
 	{
 	standart_responce
-	"messages": если метод GET
 	}

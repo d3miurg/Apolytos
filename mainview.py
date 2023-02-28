@@ -15,14 +15,13 @@ import jwt
 #import flask-script - 3
 #import flask-jwt - 3
 #import flask-restful - 3
-#import flask-sse - 1
 
 
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 
 # просмотреть статус-коды - 3
-messages_queue = []
+messages_queue = [] # очередь может заполниться одинаковыми сообщениями # нужно отвязать очередь от сервера
 
 
 def return_message():
@@ -107,7 +106,7 @@ def login():
 
 
 @application.route('/chats', methods=['GET']) #добавить создание чатов
-def chatlist():
+def chatlist(): #сделать счётчик
     all_chats = Chat.query.all()
     chat_slugs = []
     for n in all_chats:
@@ -115,7 +114,7 @@ def chatlist():
 
     return jsonify({'status': '1',
                     'reason': 'readed chat list from database',
-                    'chatlist': all_chats})
+                    'chatlist': chat_slugs})
 
 
 @application.route('/chats/<slug>', methods=['GET', 'POST'])

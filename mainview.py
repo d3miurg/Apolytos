@@ -11,25 +11,20 @@ from datetime import datetime
 from time import sleep
 
 import jwt
+import asyncio
+import websockets
 
 #import flask-script - 3
 #import flask-jwt - 3
 #import flask-restful - 3
 
+# переходим на вебсокеты
 
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 
 # просмотреть статус-коды - 3
 messages_queue = [] # очередь может заполниться одинаковыми сообщениями # нужно отвязать очередь от сервера
-
-
-def return_message():
-    if messages_queue != []:
-        yield jsonify({'message': messages_queue.pop(0)})
-        sleep(.1)
-    else:
-        sleep(1)
 
 
 @application.route('/')
@@ -106,7 +101,7 @@ def login():
 
 
 @application.route('/chats', methods=['GET']) #добавить создание чатов
-def chatlist(): #сделать счётчик
+def chatlist():
     all_chats = Chat.query.all()
     chat_slugs = []
     for n in all_chats:
@@ -121,25 +116,32 @@ def chatlist(): #сделать счётчик
 def chat(slug):
     global messages_queue
     if (request.method == 'GET'):
-        count = request.args.get('count') # может прийти строка
-        last_messages = Message.query.order_by(Message.id.desc()).slice(0, int(count))
+        count = request.args.get('count')
+        '''if type(count) != type(int()):
+            return jsonify({'status': '0',
+                            'reason': 'specify count of messages'})'''
+        last_messages = Message.query.order_by(Message.id.desc()).slice(0, 1)
         last_messages_content = []
         for n in last_messages:
             last_messages_content.append(n.content)
 
         messages_queue += last_messages_content
 
-        return Response(return_message(), content_type='text/event-stream')
+        def return_message():
+            while True:
+                yield '123'
+
+        return Response(return_message, content_type='text/event-stream')
         '''return jsonify({'status': '1',
                         'reason': 'returned messages',
                         'last_messages': last_messages_content})'''
 
     if (request.method == 'POST'):
         recieved_content = request.json['content'] # нужно проверить метод запроса и его тело - 2
-        token_payload = jwt.decode(request.json['token'], application.config['SECURE_KEY'], algorithms=["HS256"])
-        user_id = token_payload['id']
+        # token_payload = jwt.decode(request.json['token'], application.config['SECURE_KEY'], algorithms=["HS256"])
+        # user_id = token_payload['id']
         current_chat = Chat.query.filter(Chat.slug == slug).first()
-        new_message = Message(content=recieved_content, chat=current_chat.id, author=user_id)
+        new_message = Message(content=recieved_content, chat=current_chat.id, author=1)
         messages_queue.append(recieved_content)
         database.session.add(new_message)
         database.session.commit()
@@ -166,21 +168,26 @@ def refresh_token():
 # референс апи
 @application.errorhandler(400)
 def bad_request(e):
-    return 'Возникла ошибка запроса со стороны клиента. Обратитесь к тому, кто такое посмел допустить. Если вы не уверены, кто это может быть, обратитесь к администрации WinSy c настолько подробным описанием проблемы, насколько вы можете себе позволить', 400
+    return jsonify({'status': '0',
+                    'reason': 'bad request'}), 400
 
 
 @application.errorhandler(404)
 def page_not_found(e):
-    return ''.join(['Страница не найдена. Убедитесь, что:\n',
-                    '1. Это не прикол\n',
-                    '2. Адрес написан правильно\n',
-                    '3. Если вы перешли сюда по гиперссылке, дайте по башке\n',
-                    ' тому, кто её сделал']), 404
+    return jsonify({'status': '0',
+                    'reason': 'page not found'}), 404
 
 
 @application.errorhandler(405)
 def method_not_allowed(e):
-    return 'Неправильный метод', 405
+    return jsonify({'status': '0',
+                    'reason': 'invalid method'}), 405
+
+
+@application.errorhandler(500)
+def internal_serve_error(e):
+    return jsonify({'status': '0',
+                    'reason': 'server is down'}), 405
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ class Users_to_chats_relation(database.Model):
     chat_relation = database.relationship('Chat', back_populates='users')
 
 
-class User(database.Model):
+class User(database.Model): # состояние аккаунта пользователя
     __tablename__ = 'users'
     id = database.Column(database.Integer, primary_key=True)
     username = database.Column(database.String(32))
@@ -41,7 +41,7 @@ class Chat(database.Model):
         return self.slug
 
 
-class Message(database.Model):
+class Message(database.Model): 
     __tablename__ = 'messages'
     id = database.Column(database.Integer, primary_key=True)
     content = database.Column(database.String(2048))

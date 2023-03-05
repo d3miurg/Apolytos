@@ -65,7 +65,7 @@ def register():
     username = request.json['username']
     password = request.json['password']
     slug = request.json['slug']
-    if (len(password) != 64):
+    if (len(password) != 64): # найти другие способы проверки хеша
         return jsonify({'error': 1,
                         'reason': 'password is not hashed'}), 400
     new_user = User(username=username,
@@ -127,7 +127,7 @@ def chatlist():
                     'chatlist': chat_slugs}), 200
 
 
-@application.route('/chats/<slug>', methods=['GET'])
+@application.route('/chats/<slug>', methods=['GET']) # проверка на спам
 def chat(slug):
     count = request.args.get('count')
     if isinstance(count, int):

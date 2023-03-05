@@ -120,7 +120,10 @@
 >
 >**Ответ:**
 >
-	event stream
+	{
+	standart_responce
+	"last_messages": последние сообщения
+	}
 	или
 	{
 	standart_responce

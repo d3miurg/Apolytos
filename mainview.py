@@ -13,13 +13,6 @@ import jwt
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 
 
-def construct_responce(error, reason, **additional):
-    responce = {'error': error,
-                'reason': reason}
-    responce.update(additional)
-    return responce
-
-
 @application.route('/', methods=['GET'])
 def index():
     try:
@@ -36,38 +29,33 @@ def index():
 
 @application.route('/teapod', methods=['GET'])
 def teapod():
-    additional = {'additional': 'latte, americano and espresso is available'}
+    extra = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')
     if not coffee_type:
-        responce = construct_responce(1, 'specify coffee type', **additional)  # дублирование кода
-        return jsonify(responce), 418
+        return jsonify({'error': 1,
+                        'reason': 'specify coffee type'}.update(extra)), 418
     elif coffee_type == 'tea':
-        responce = construct_responce(1, 'only coffee', **additional) # дублирование кода
-        return jsonify(responce), 406
+        return jsonify({'error': 1,
+                        'reason': 'only coffee'}.update(extra)), 406
     available_coffee_types = ['latte', 'americano', 'espresso']
     if coffee_type not in available_coffee_types:
-        responce = construct_responce(1,
-                                      'this type is not available',
-                                      **additional) # дублирование кода
-        return jsonify(responce), 406
+        return jsonify({'error': 1,
+                        'reason': 'only coffee'}.update(extra)), 406
 
-    responce = construct_responce(0, 'making coffee for you, come back later') # дублирование кода
-    return jsonify(responce), 200
+    normal_reason = 'making coffee for you, come back later'
+    return jsonify({'error': 0,
+                    'reason': normal_reason}.update(extra)), 200
+
 
 @application.route('/register', methods=['POST'])
 def register():
-    required_keys = ['username', 'password', 'slug']
-    for key in required_keys:
-        if key not in request.json:
-            return jsonify({'error': 1,
-                            'reason': f'{key} is not in request JSON'}), 400
-
-    username = request.json['username']
-    password = request.json['password']
-    slug = request.json['slug']
+    username = request.json.get('username') # сделать валидацию
+    password = request.json.get('password')
+    slug = request.json.get('slug')
     if (len(password) != 64): # найти другие способы проверки хеша
         return jsonify({'error': 1,
-                        'reason': 'password is not hashed'}), 400
+                        'reason': 'invalid password type',
+                        'additional': 'SHA-256 hexdigest is recommended'}), 400
     new_user = User(username=username,
                     password=password,
                     slug=slug)
@@ -171,6 +159,7 @@ def refresh_token():
 # настройки чата
 # форма создания нового чата
 # референс апи
+# редактирование профиля
 @application.errorhandler(400)
 def bad_request(e):
     return jsonify({'error': '0',

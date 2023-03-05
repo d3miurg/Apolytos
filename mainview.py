@@ -9,6 +9,7 @@ from sqlalchemy import exc
 from datetime import datetime
 
 import jwt
+import re
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 
@@ -37,6 +38,7 @@ def teapod():
     elif coffee_type == 'tea':
         return jsonify({'error': 1,
                         'reason': 'only coffee'}.update(extra)), 406
+
     available_coffee_types = ['latte', 'americano', 'espresso']
     if coffee_type not in available_coffee_types:
         return jsonify({'error': 1,
@@ -49,13 +51,19 @@ def teapod():
 
 @application.route('/register', methods=['POST'])
 def register():
-    username = request.json.get('username') # сделать валидацию
+    username = request.json.get('username')
     password = request.json.get('password')
     slug = request.json.get('slug')
-    if (len(password) != 64): # найти другие способы проверки хеша
+    if (len(password) != 64):
         return jsonify({'error': 1,
                         'reason': 'invalid password type',
-                        'additional': 'SHA-256 hexdigest is recommended'}), 400
+                        'additional': 'SHA256 hexdigest is recommended'}), 400
+
+    if None in (username, slug):
+        return jsonify({'error': 1,
+                        'reason': 'incomplete form',
+                        'additional': 'check for "username" and "slug"'}), 400
+
     new_user = User(username=username,
                     password=password,
                     slug=slug)
@@ -68,7 +76,7 @@ def register():
 @application.route('/login', methods=['GET'])
 def login():
     username = request.args.get('username')
-    password = request.args.get('password') # пароль может не прийти - 3
+    password = request.args.get('password')
     slug = request.args.get('slug')
     print(slug)
     recieved_user = User.query.filter(User.slug == slug).first()

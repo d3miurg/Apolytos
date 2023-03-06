@@ -83,10 +83,12 @@ def login():
     elif username:
         found_users = User.query.filter(User.username == username).all()
         if len(found_users) > 1:
-            user_slugs = [n.slug for n in found_users] # высокая вложенность
+            user_slugs = [n.slug for n in found_users]
             return jsonify({'error': 1,
                             'reason': 'specify slug',
                             'found_slugs': user_slugs}), 400
+        else:
+            recieved_user = found_users[0]
     else:
         return jsonify({'error': 1,
                         'reason': 'specify slug or username'}), 400
@@ -99,11 +101,18 @@ def login():
         return jsonify({'error': 1,
                         'reason': 'invalid password'}), 401
 
+    appconfig = application.config
     current_time = datetime.now().timestamp()
-    auth_expiration_date = current_time + application.config['AUTH_LIFETIME']
-    refresh_expiration_date = current_time + application.config['REFRESH_LIFETIME']
-    auth_token = jwt.encode({'id': recieved_user.id, 'exp': auth_expiration_date}, application.config['SECURE_KEY'])
-    refresh_token = jwt.encode({'id': recieved_user.id, 'exp': refresh_expiration_date}, application.config['SECURE_KEY'])
+    auth_expiration_date = current_time + appconfig['AUTH_LIFETIME']
+    refresh_expiration_date = current_time + appconfig['REFRESH_LIFETIME']
+
+    auth_token = jwt.encode({'id': recieved_user.id,
+                             'exp': auth_expiration_date},
+                            appconfig['SECURE_KEY'])
+    refresh_token = jwt.encode({'id': recieved_user.id,
+                                'exp': refresh_expiration_date},
+                               appconfig['SECURE_KEY'])
+
     return jsonify({'error': 0,
                     'reason': 'successful login',
                     'auth_token': auth_token,

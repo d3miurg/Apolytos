@@ -9,10 +9,10 @@ from sqlalchemy import exc
 from datetime import datetime
 
 import jwt
-import re
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 
+# придумать что-то с ответами
 
 @application.route('/', methods=['GET'])
 def index():
@@ -42,7 +42,7 @@ def teapod():
     available_coffee_types = ['latte', 'americano', 'espresso']
     if coffee_type not in available_coffee_types:
         return jsonify({'error': 1,
-                        'reason': 'only coffee'}.update(extra)), 406
+                        'reason': 'cannot make this type'}.update(extra)), 406
 
     normal_reason = 'making coffee for you, come back later'
     return jsonify({'error': 0,
@@ -78,16 +78,15 @@ def login():
     username = request.args.get('username')
     password = request.args.get('password')
     slug = request.args.get('slug')
-    print(slug)
-    recieved_user = User.query.filter(User.slug == slug).first()
     if slug:
-        print('slug')
         recieved_user = User.query.filter(User.slug == slug).first()
-        print(recieved_user)
     elif username:
-        print('username')
-        recieved_user = User.query.filter(User.username == username).first() # может быть 2 пользователя с одним именем - 0 # # дубляж кода - 3
-        print(recieved_user)
+        found_users = User.query.filter(User.username == username).all()
+        if len(found_users) > 1:
+            user_slugs = [n.slug for n in found_users] # высокая вложенность
+            return jsonify({'error': 1,
+                            'reason': 'specify slug',
+                            'found_slugs': user_slugs}), 400
     else:
         return jsonify({'error': 1,
                         'reason': 'specify slug or username'}), 400
@@ -114,9 +113,7 @@ def login():
 @application.route('/chats', methods=['GET']) #добавить создание чатов # добавить вход в чат
 def chatlist():
     all_chats = Chat.query.all()
-    chat_slugs = []
-    for n in all_chats:
-        chat_slugs.append(n.slug)
+    chat_slugs = [n.slug for n in all_chats]
 
     return jsonify({'error': 0,
                     'reason': 'readed chat list from database',
@@ -131,9 +128,7 @@ def chat(slug):
                         'reason': 'specify count of messages'}), 400
 
     last_messages = Message.query.order_by(Message.id.desc()).slice(0, count)
-    last_messages_content = []
-    for n in last_messages:
-        last_messages_content.append(n.content)
+    last_messages_content = [n.content for n in all_chats]
 
     return jsonify({'error': 0,
                     'reason': 'returned messages',

@@ -12,7 +12,6 @@ import jwt
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 
-# придумать что-то с ответами
 
 @application.route('/', methods=['GET'])
 def index():
@@ -97,6 +96,10 @@ def login():
         return jsonify({'error': 1,
                         'reason': 'user not found'}), 401
 
+    if recieved_user.status == 'sus':
+        return jsonify({'error': 1,
+                        'reason': 'this account suspended'}), 403
+
     if (recieved_user.password != password):
         return jsonify({'error': 1,
                         'reason': 'invalid password'}), 401
@@ -128,6 +131,14 @@ def chatlist():
                     'reason': 'readed chat list from database',
                     'chatlist': chat_slugs}), 200
 
+@application.route('/chats', methods=['POST'])
+def create_chat():
+    name = request.json.get('name')
+    slug = request.json.get('slug')
+    return jsonify({'error': 1,
+                    'reason': 'not implemented',
+                    'auth_token': auth_token,
+                    'refresh_token': refresh_token}), 501
 
 @application.route('/chats/<slug>', methods=['GET'])
 def chat(slug):

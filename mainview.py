@@ -119,7 +119,7 @@ def login():
                     'refresh_token': refresh_token}), 200
 
 
-@application.route('/chats', methods=['GET']) #добавить создание чатов # добавить вход в чат
+@application.route('/chats', methods=['GET']) # добавить вход в чат
 def chatlist():
     all_chats = Chat.query.all()
     chat_slugs = [n.slug for n in all_chats]
@@ -129,7 +129,7 @@ def chatlist():
                     'chatlist': chat_slugs}), 200
 
 
-@application.route('/chats/<slug>', methods=['GET']) # проверка на спам
+@application.route('/chats/<slug>', methods=['GET'])
 def chat(slug):
     count = request.args.get('count')
     if isinstance(count, int):
@@ -137,7 +137,7 @@ def chat(slug):
                         'reason': 'specify count of messages'}), 400
 
     last_messages = Message.query.order_by(Message.id.desc()).slice(0, count)
-    last_messages_content = [n.content for n in all_chats]
+    last_messages_content = [n.content for n in last_messages]
 
     return jsonify({'error': 0,
                     'reason': 'returned messages',

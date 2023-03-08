@@ -143,6 +143,11 @@ def chatlist():
 def create_chat():
     name = request.json.get('name')
     slug = request.json.get('slug')
+    token_payload = jwt.decode(request.json['token'], application.config['SECURE_KEY'], algorithms=["HS256"])
+    admin_id = token_payload['id']
+    new_chat = Chat(name=name, slug=slug)
+    database.session.add(new_chat)
+    database.session.commit()
     return jsonify({'error': 1,
                     'reason': 'not implemented',
                     'auth_token': auth_token,

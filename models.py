@@ -3,17 +3,19 @@ from app import database
 
 class Users_to_chats_relation(database.Model):
     __tablename__ = 'users_to_chats_relations'
+    id = database.Column(database.Integer, primary_key=True)
     user = database.Column(database.Integer,
                            database.ForeignKey('users.id'),
                            primary_key=True)
     chat = database.Column(database.Integer,
                            database.ForeignKey('chats.id'),
                            primary_key=True)
+    is_admin = database.Column(database.Boolean)
     user_relation = database.relationship('User', back_populates='chats')
     chat_relation = database.relationship('Chat', back_populates='users')
 
 
-class User(database.Model): # состояние аккаунта пользователя
+class User(database.Model):
     __tablename__ = 'users'
     id = database.Column(database.Integer, primary_key=True)
     username = database.Column(database.String(32))
@@ -33,8 +35,6 @@ class Chat(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     name = database.Column(database.String(32))
     slug = database.Column(database.String(32))
-    # admin = database.Column(database.Integer, database.ForeignKey('users.id'))
-    # admin_relation = database.relationship('User')
     users = database.relationship('Users_to_chats_relation',
                                   back_populates='chat_relation')
     messages = database.relationship('Message')

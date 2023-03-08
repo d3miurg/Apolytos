@@ -24,10 +24,14 @@ def index():
                         'reason': 'database is down'}), 503
 
     return jsonify({'error': 0,
-                    'reason': 'api is active'}), 200
+                    'reason': 'api is active',
+                    'version': '0.1.1.0',
+                    'stack': ['Python 3.10.1',
+                              'Flask 2.2.2',
+                              'InnoDB 5.7.27-30']}), 200
 
 
-@application.route('/teapod', methods=['GET'])
+@application.route('/teapod', methods=['GET']) # добавить кофе
 def teapod():
     extra = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')

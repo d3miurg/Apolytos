@@ -3,7 +3,7 @@ from app import database
 
 class Users_to_chats_relation(database.Model):
     __tablename__ = 'users_to_chats_relations'
-    id = database.Column(database.Integer, primary_key=True)
+    id = database.Column(database.Integer, primary_key=True, autoincrement=True)
     user = database.Column(database.Integer,
                            database.ForeignKey('users.id'),
                            primary_key=True)
@@ -17,7 +17,7 @@ class Users_to_chats_relation(database.Model):
 
 class User(database.Model):
     __tablename__ = 'users'
-    id = database.Column(database.Integer, primary_key=True)
+    id = database.Column(database.Integer, primary_key=True, autoincrement=True)
     username = database.Column(database.String(32))
     password = database.Column(database.String(64))
     slug = database.Column(database.String(32))
@@ -32,7 +32,7 @@ class User(database.Model):
 
 class Chat(database.Model):
     __tablename__ = 'chats'
-    id = database.Column(database.Integer, primary_key=True)
+    id = database.Column(database.Integer, primary_key=True, autoincrement=True)
     name = database.Column(database.String(32))
     slug = database.Column(database.String(32))
     users = database.relationship('Users_to_chats_relation',
@@ -45,7 +45,7 @@ class Chat(database.Model):
 
 class Message(database.Model):
     __tablename__ = 'messages'
-    id = database.Column(database.Integer, primary_key=True)
+    id = database.Column(database.Integer, primary_key=True, autoincrement=True)
     content = database.Column(database.String(2048))
     author = database.Column(database.Integer, database.ForeignKey('users.id'))
     chat = database.Column(database.Integer, database.ForeignKey('chats.id'))

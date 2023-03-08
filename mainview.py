@@ -5,6 +5,7 @@ from flask import jsonify
 from models import User
 from models import Chat
 from models import Message
+from models import Users_to_chats_relation
 from sqlalchemy import exc
 from datetime import datetime
 
@@ -139,19 +140,26 @@ def chatlist():
                     'reason': 'readed chat list from database',
                     'chatlist': chat_slugs}), 200
 
+
 @application.route('/chats', methods=['POST'])
 def create_chat():
     name = request.json.get('name')
     slug = request.json.get('slug')
-    token_payload = jwt.decode(request.json['token'], application.config['SECURE_KEY'], algorithms=["HS256"])
+    token_payload = jwt.decode(request.json['token'],
+                               application.config['SECURE_KEY'],
+                               algorithms=["HS256"])
     admin_id = token_payload['id']
     new_chat = Chat(name=name, slug=slug)
     database.session.add(new_chat)
     database.session.commit()
-    return jsonify({'error': 1,
-                    'reason': 'not implemented',
-                    'auth_token': auth_token,
-                    'refresh_token': refresh_token}), 501
+    new_relation = Users_to_chats_relation(user=admin_id,
+                                           chat=new_chat.id,
+                                           is_admin=True)
+    database.session.add(new_relation)
+    database.session.commit()
+    return jsonify({'error': 0,
+                    'reason': 'created chat'}), 201
+
 
 @application.route('/chats/<slug>', methods=['GET'])
 def chat(slug):

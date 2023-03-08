@@ -14,6 +14,8 @@ import jwt
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 
 
+# декоратор для jwt
+# изменить регистрацию под рест
 @application.route('/', methods=['GET'])
 def index():
     try:
@@ -26,7 +28,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.1.2.0',
+                    'version': '0.1.4.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
@@ -159,6 +161,23 @@ def create_chat():
     database.session.commit()
     return jsonify({'error': 0,
                     'reason': 'created chat'}), 201
+
+
+@application.route('/chats', methods=['PUT'])
+def enter_chat():
+    slug = request.json.get('slug')
+    token_payload = jwt.decode(request.json['token'],
+                               application.config['SECURE_KEY'],
+                               algorithms=["HS256"])
+    user_id = token_payload['id']
+    target_chat = Chat.query.filter(Chat.slug == slug).first()
+    new_relation = Users_to_chats_relation(user=user_id,
+                                           chat=target_chat.id,
+                                           is_admin=False)
+    database.session.add(new_relation)
+    database.session.commit()
+    return jsonify({'error': 0,
+                    'reason': 'joined chat'}), 202
 
 
 @application.route('/chats/<slug>', methods=['GET'])

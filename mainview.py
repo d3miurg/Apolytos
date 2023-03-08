@@ -25,31 +25,35 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.1.1.0',
+                    'version': '0.1.2.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
 
 
-@application.route('/teapod', methods=['GET']) # добавить кофе
+@application.route('/teapod', methods=['GET'])
 def teapod():
-    extra = {'additional': 'latte, americano and espresso is available'}
+    additional = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')
     if not coffee_type:
         return jsonify({'error': 1,
-                        'reason': 'specify coffee type'}.update(extra)), 418
+                        'reason': 'specify coffee type'} | additional), 418
     elif coffee_type == 'tea':
         return jsonify({'error': 1,
-                        'reason': 'only coffee'}.update(extra)), 406
+                        'reason': 'only coffee'} | additional), 406
+    elif coffee_type == 'coffee':
+        return jsonify({'coffee': 'coffee',
+                        'coffee coffee': 'coffee',
+                        'coffee coffee coffee': 'coffee'}), 418
 
     available_coffee_types = ['latte', 'americano', 'espresso']
     if coffee_type not in available_coffee_types:
         return jsonify({'error': 1,
-                        'reason': 'cannot make this type'}.update(extra)), 406
+                        'reason': 'cannot make this type'} | additional), 406
 
     normal_reason = 'making coffee for you, come back later'
     return jsonify({'error': 0,
-                    'reason': normal_reason}.update(extra)), 200
+                    'reason': normal_reason}), 200
 
 
 @application.route('/register', methods=['POST'])

@@ -26,7 +26,6 @@ def require_jwt(function):
     return jwt_wrapper
 
 
-# изменить регистрацию под рест (auth)
 @application.route('/', methods=['GET'], endpoint='index')
 def index():
     try:
@@ -39,7 +38,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.1.5.0',
+                    'version': '0.2.0.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
@@ -149,7 +148,7 @@ def login():
                     'refresh_token': refresh_token}), 200
 
 
-@application.route('/chats', methods=['GET'], endpoint='chatlist') # проверка навход в чат # выход из чата # реализовать карту
+@application.route('/chats', methods=['GET'], endpoint='chatlist') # проверка на вход в чат # выход из чата # реализовать карту
 def chatlist():
     all_chats = Chat.query.all()
     chat_slugs = [n.slug for n in all_chats]
@@ -228,7 +227,7 @@ def send_message(slug):
                     'reason': 'sended message to server'}), 201
 
 
-@application.route('/refresh', methods=['GET'], endpoint='refresh_token') # починить токен - 1
+@application.route('/refresh', methods=['PATCH'], endpoint='refresh_token') # починить токен - 1
 def refresh_token():
     return jsonify({'error': 1,
                     'reason': 'not implemented'}), 501
@@ -239,8 +238,6 @@ def refresh_token():
 
 
 # настройки чата
-# форма создания нового чата
-# референс апи
 # редактирование профиля
 @application.errorhandler(400)
 def bad_request(e):
@@ -266,5 +263,7 @@ def internal_serve_error(e):
                     'reason': 'server is down'}), 405
 
 
+# сообщества
+# посты
 if __name__ == '__main__':
     application.run()

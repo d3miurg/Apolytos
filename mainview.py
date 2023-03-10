@@ -26,7 +26,6 @@ def require_jwt(function):
     return jwt_wrapper
 
 
-# декоратор для jwt
 # изменить регистрацию под рест (auth)
 @application.route('/', methods=['GET'], endpoint='index')
 def index():
@@ -71,12 +70,17 @@ def teapod():
                     'reason': normal_reason}), 200
 
 
-@application.route('/register', methods=['POST'], endpoint='register')
+@application.route('/auth', methods=['POST'], endpoint='register')
 def register():
     username = request.json.get('username')
     password = request.json.get('password')
     slug = request.json.get('slug')
-    if (len(password) != 64):
+    if not password:
+        return jsonify({'error': 1,
+                        'reason': 'specify password',
+                        'additional': 'SHA256 hexdigest is recommended'}), 400
+
+    elif len(password) != 64:
         return jsonify({'error': 1,
                         'reason': 'invalid password type',
                         'additional': 'SHA256 hexdigest is recommended'}), 400
@@ -95,7 +99,7 @@ def register():
                     'reason': 'successful register'}), 201
 
 
-@application.route('/login', methods=['GET'], endpoint='login')
+@application.route('/auth', methods=['GET'], endpoint='login')
 def login():
     username = request.args.get('username')
     password = request.args.get('password')
@@ -240,25 +244,25 @@ def refresh_token():
 # редактирование профиля
 @application.errorhandler(400)
 def bad_request(e):
-    return jsonify({'error': '0',
+    return jsonify({'error': 1,
                     'reason': 'bad request'}), 400
 
 
 @application.errorhandler(404)
 def page_not_found(e):
-    return jsonify({'error': '0',
+    return jsonify({'error': 1,
                     'reason': 'page not found'}), 404
 
 
 @application.errorhandler(405)
 def method_not_allowed(e):
-    return jsonify({'error': '0',
+    return jsonify({'error': 1,
                     'reason': 'invalid method'}), 405
 
 
 @application.errorhandler(500)
 def internal_serve_error(e):
-    return jsonify({'error': '0',
+    return jsonify({'error': 1,
                     'reason': 'server is down'}), 405
 
 

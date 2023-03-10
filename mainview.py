@@ -14,9 +14,21 @@ import jwt
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 
 
+def require_jwt(function):
+    def jwt_wrapper(*args, **kwargs):
+        if request.json.get('token'):
+            responce = function(*args, **kwargs)
+            return responce
+        else:
+            return jsonify({'error': 1,
+                            'reason': 'token is required'}), 403
+
+    return jwt_wrapper
+
+
 # декоратор для jwt
-# изменить регистрацию под рест
-@application.route('/', methods=['GET'])
+# изменить регистрацию под рест (auth)
+@application.route('/', methods=['GET'], endpoint='index')
 def index():
     try:
         User.query.all()
@@ -28,13 +40,13 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.1.4.0',
+                    'version': '0.1.5.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
 
 
-@application.route('/teapod', methods=['GET'])
+@application.route('/teapod', methods=['GET'], endpoint='teapod')
 def teapod():
     additional = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')
@@ -59,7 +71,7 @@ def teapod():
                     'reason': normal_reason}), 200
 
 
-@application.route('/register', methods=['POST'])
+@application.route('/register', methods=['POST'], endpoint='register')
 def register():
     username = request.json.get('username')
     password = request.json.get('password')
@@ -83,7 +95,7 @@ def register():
                     'reason': 'successful register'}), 201
 
 
-@application.route('/login', methods=['GET'])
+@application.route('/login', methods=['GET'], endpoint='login')
 def login():
     username = request.args.get('username')
     password = request.args.get('password')
@@ -133,7 +145,7 @@ def login():
                     'refresh_token': refresh_token}), 200
 
 
-@application.route('/chats', methods=['GET']) # добавить вход в чат
+@application.route('/chats', methods=['GET'], endpoint='chatlist') # проверка навход в чат # выход из чата # реализовать карту
 def chatlist():
     all_chats = Chat.query.all()
     chat_slugs = [n.slug for n in all_chats]
@@ -143,7 +155,8 @@ def chatlist():
                     'chatlist': chat_slugs}), 200
 
 
-@application.route('/chats', methods=['POST'])
+@application.route('/chats', methods=['POST'], endpoint='create_chat')
+@require_jwt
 def create_chat():
     name = request.json.get('name')
     slug = request.json.get('slug')
@@ -163,7 +176,8 @@ def create_chat():
                     'reason': 'created chat'}), 201
 
 
-@application.route('/chats', methods=['PUT'])
+@application.route('/chats', methods=['PUT'], endpoint='enter_chat')
+@require_jwt
 def enter_chat():
     slug = request.json.get('slug')
     token_payload = jwt.decode(request.json['token'],
@@ -180,7 +194,7 @@ def enter_chat():
                     'reason': 'joined chat'}), 202
 
 
-@application.route('/chats/<slug>', methods=['GET'])
+@application.route('/chats/<slug>', methods=['GET'], endpoint='chat')
 def chat(slug):
     count = request.args.get('count')
     if isinstance(count, int):
@@ -195,7 +209,8 @@ def chat(slug):
                     'last_messages': last_messages_content}), 200
 
 
-@application.route('/chats/<slug>', methods=['POST'])
+@application.route('/chats/<slug>', methods=['POST'], endpoint='send_message')
+@require_jwt
 def send_message(slug):
     recieved_content = request.json['content'] # нужно проверить метод запроса и его тело - 2
     token_payload = jwt.decode(request.json['token'], application.config['SECURE_KEY'], algorithms=["HS256"])
@@ -209,7 +224,7 @@ def send_message(slug):
                     'reason': 'sended message to server'}), 201
 
 
-@application.route('/refresh', methods=['GET']) # починить токен - 1
+@application.route('/refresh', methods=['GET'], endpoint='refresh_token') # починить токен - 1
 def refresh_token():
     return jsonify({'error': 1,
                     'reason': 'not implemented'}), 501

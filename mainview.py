@@ -39,7 +39,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.0.2',
+                    'version': '0.2.1.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
@@ -148,8 +148,8 @@ def login():
                     'refresh_token': refresh_token}), 200
 
 
-@application.route('/chats', methods=['GET'], endpoint='chatlist') # проверка на вход в чат # выход из чата # реализовать карту
-def chatlist(): # возвращать последнее сообщение
+@application.route('/chats', methods=['GET'], endpoint='chatlist')
+def chatlist():
     all_chats = Chat.query.all()
     chat_slugs = [n.slug for n in all_chats]
 
@@ -198,7 +198,7 @@ def enter_chat():
 
 
 @application.route('/chats/<slug>', methods=['GET'], endpoint='chat')
-def chat(slug): # возвращать автора # возвращать айди # фильтрация по чату
+def chat(slug):
     count = request.args.get('count')
     if isinstance(count, int):
         return jsonify({'error': 1,
@@ -215,11 +215,20 @@ def chat(slug): # возвращать автора # возвращать ай�
 @application.route('/chats/<slug>', methods=['POST'], endpoint='send_message')
 @require_jwt
 def send_message(slug):
-    recieved_content = request.json['content'] # нужно проверить метод запроса и его тело - 2
-    token_payload = jwt.decode(request.json['token'], application.config['SECURE_KEY'], algorithms=['HS256'])
+    recieved_content = request.json.get('content')
+
+    if not recieved_content:
+        return jsonify({'error': 0,
+                        'reason': 'sended message to server'}), 400
+    token_payload = jwt.decode(request.json['token'],
+                               application.config['SECURE_KEY'],
+                               algorithms=['HS256'])
     user_id = token_payload['id']
+
     current_chat = Chat.query.filter(Chat.slug == slug).first()
-    new_message = Message(content=recieved_content, chat=current_chat.id, author=user_id)
+    new_message = Message(content=recieved_content,
+                          chat=current_chat.id,
+                          author=user_id)
     database.session.add(new_message)
     database.session.commit()
 
@@ -227,7 +236,7 @@ def send_message(slug):
                     'reason': 'sended message to server'}), 201
 
 
-@application.route('/refresh', methods=['PATCH'], endpoint='refresh_token') # починить токен - 1
+@application.route('/refresh', methods=['PATCH'], endpoint='refresh_token')
 def refresh_token():
     return jsonify({'error': 1,
                     'reason': 'not implemented'}), 501
@@ -239,10 +248,11 @@ def refresh_token():
 
 # настройки чата
 # редактирование профиля
-@application.errorhandler(400) # нечитаемый json != плохой запрос
+@application.errorhandler(400)
 def bad_request(e):
     return jsonify({'error': 1,
-                    'reason': 'bad request'}), 400
+                    'reason': 'bad request',
+                    'additional': 'check "Content-Type" header and body spelling'}), 400
 
 
 @application.errorhandler(404)

@@ -51,7 +51,9 @@ class Chat(database.Model):
 
 class Message(database.Model):
     __tablename__ = 'messages'
-    id = database.Column(database.Integer, primary_key=True, autoincrement=True)
+    id = database.Column(database.Integer,
+                         primary_key=True,
+                         autoincrement=True)
     content = database.Column(database.String(2048))
     author = database.Column(database.Integer, database.ForeignKey('users.id'))
     chat = database.Column(database.Integer, database.ForeignKey('chats.id'))

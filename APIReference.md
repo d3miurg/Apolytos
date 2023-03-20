@@ -1,6 +1,9 @@
 / [GET](#mainget)
+
  /auth [GET](#authget) [POST](#authpost)
+
  /chats [GET](#chatsget) [POST](#chatspost) [PUT](#chatsput)
+ 
   /chats/{slug} [GET](#chatsslugget) [POST](#chatsslugpost)
 
 **Любой ответ от сервера построен по следующей форме:**

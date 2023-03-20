@@ -12,6 +12,7 @@ from datetime import datetime
 import jwt
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
+# https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_MIME-%D1%82%D0%B8%D0%BF%D0%BE%D0%B2
 
 
 def require_jwt(function):
@@ -26,7 +27,7 @@ def require_jwt(function):
     return jwt_wrapper
 
 
-@application.route('/', methods=['GET'], endpoint='index')
+@application.route('/', endpoint='index')
 def index():
     try:
         User.query.all()
@@ -38,7 +39,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.0.0',
+                    'version': '0.2.0.2',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
@@ -112,15 +113,14 @@ def login():
             return jsonify({'error': 1,
                             'reason': 'specify slug',
                             'found_slugs': user_slugs}), 400
+        elif not recieved_user:
+            return jsonify({'error': 1,
+                            'reason': 'user not found'}), 401
         else:
             recieved_user = found_users[0]
     else:
         return jsonify({'error': 1,
                         'reason': 'specify slug or username'}), 400
-
-    if not recieved_user:
-        return jsonify({'error': 1,
-                        'reason': 'user not found'}), 401
 
     if recieved_user.status == 'sus':
         return jsonify({'error': 1,
@@ -149,7 +149,7 @@ def login():
 
 
 @application.route('/chats', methods=['GET'], endpoint='chatlist') # проверка на вход в чат # выход из чата # реализовать карту
-def chatlist():
+def chatlist(): # возвращать последнее сообщение
     all_chats = Chat.query.all()
     chat_slugs = [n.slug for n in all_chats]
 
@@ -198,14 +198,14 @@ def enter_chat():
 
 
 @application.route('/chats/<slug>', methods=['GET'], endpoint='chat')
-def chat(slug):
+def chat(slug): # возвращать автора # возвращать айди # фильтрация по чату
     count = request.args.get('count')
     if isinstance(count, int):
         return jsonify({'error': 1,
                         'reason': 'specify count of messages'}), 400
 
     last_messages = Message.query.order_by(Message.id.desc()).slice(0, count)
-    last_messages_content = [n.content for n in last_messages]
+    last_messages_content = [[n.content, n.author] for n in last_messages]
 
     return jsonify({'error': 0,
                     'reason': 'returned messages',
@@ -216,14 +216,14 @@ def chat(slug):
 @require_jwt
 def send_message(slug):
     recieved_content = request.json['content'] # нужно проверить метод запроса и его тело - 2
-    token_payload = jwt.decode(request.json['token'], application.config['SECURE_KEY'], algorithms=["HS256"])
+    token_payload = jwt.decode(request.json['token'], application.config['SECURE_KEY'], algorithms=['HS256'])
     user_id = token_payload['id']
     current_chat = Chat.query.filter(Chat.slug == slug).first()
     new_message = Message(content=recieved_content, chat=current_chat.id, author=user_id)
     database.session.add(new_message)
     database.session.commit()
 
-    return jsonify({'error': '1',
+    return jsonify({'error': 0,
                     'reason': 'sended message to server'}), 201
 
 
@@ -239,7 +239,7 @@ def refresh_token():
 
 # настройки чата
 # редактирование профиля
-@application.errorhandler(400)
+@application.errorhandler(400) # нечитаемый json != плохой запрос
 def bad_request(e):
     return jsonify({'error': 1,
                     'reason': 'bad request'}), 400

@@ -17,12 +17,17 @@ import jwt
 
 def require_jwt(function):
     def jwt_wrapper(*args, **kwargs):
-        if request.json.get('token'):
-            responce = function(*args, **kwargs)
-            return responce
-        else:
+        if not request.json.get('token'):
             return jsonify({'error': 1,
                             'reason': 'token is required'}), 403
+        try:
+            payload = jwt.decode(request.json.get('token'))
+        except jwt.exceptions.DecodeError:
+            return jsonify({'error': 1,
+                            'reason': 'invalid token'}), 403
+        responce = function(*args, **kwargs)
+        return responce
+            
 
     return jwt_wrapper
 
@@ -39,7 +44,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.1.0',
+                    'version': '0.2.2.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
@@ -226,6 +231,7 @@ def send_message(slug):
     user_id = token_payload['id']
 
     current_chat = Chat.query.filter(Chat.slug == slug).first()
+    print(dir(current_chat.users))
     new_message = Message(content=recieved_content,
                           chat=current_chat.id,
                           author=user_id)

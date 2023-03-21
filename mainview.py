@@ -18,19 +18,25 @@ import jwt
 def require_jwt(function):
     def jwt_wrapper(*args, **kwargs):
         token = request.json.get('token')
+        current_timestamp = datetime.now().timestamp()
         if not token:
             return jsonify({'error': 1,
                             'reason': 'token is required'}), 403
         try:
-            jwt.decode(token,
-                       application.config['SECURE_KEY'],
-                       algorithms=["HS256"])
+            payload = jwt.decode(token,
+                                 application.config['SECURE_KEY'],
+                                 algorithms=["HS256"])
+            expiration_timestamp = payload.get('exp')
         except jwt.exceptions.DecodeError:
             return jsonify({'error': 1,
                             'reason': 'invalid token'}), 403
 
-        responce = function(*args, **kwargs)
-        return responce
+        if current_timestamp < expiration_timestamp:
+            responce = function(*args, **kwargs)
+            return responce
+        else:
+            return jsonify({'error': 1,
+                            'reason': 'token expired'}), 403
 
     return jwt_wrapper
 
@@ -139,15 +145,16 @@ def login():
                         'reason': 'invalid password'}), 401
 
     appconfig = application.config
-    current_time = datetime.now().timestamp()
-    auth_expiration_date = current_time + appconfig['AUTH_LIFETIME']
-    refresh_expiration_date = current_time + appconfig['REFRESH_LIFETIME']
+    current_timestamp = datetime.now().timestamp()
+    auth_expiration_timestamp = current_time + appconfig['AUTH_LIFETIME']
+    refresh_expiration_timestamp = current_time + appconfig['REFRESH_LIFETIME']
 
     auth_token = jwt.encode({'id': recieved_user.id,
-                             'exp': auth_expiration_date},
+                             'exp': auth_expiration_timestamp},
                             appconfig['SECURE_KEY'])
     refresh_token = jwt.encode({'id': recieved_user.id,
-                                'exp': refresh_expiration_date},
+                                'refresh': True,
+                                'exp': refresh_expiration_timestamp},
                                appconfig['SECURE_KEY'])
 
     return jsonify({'error': 0,
@@ -272,14 +279,12 @@ def refresh_token():
     return jsonify({'error': 0,
                     'reason': 'sended message to server'})
 
-
-# настройки чата
-# редактирование профиля
 @application.errorhandler(400)
 def bad_request(e):
+    additional = 'check "Content-Type" header and body spelling'
     return jsonify({'error': 1,
                     'reason': 'bad request',
-                    'additional': 'check "Content-Type" header and body spelling'}), 400
+                    'additional': additional}), 400
 
 
 @application.errorhandler(404)

@@ -17,17 +17,20 @@ import jwt
 
 def require_jwt(function):
     def jwt_wrapper(*args, **kwargs):
-        if not request.json.get('token'):
+        token = request.json.get('token')
+        if not token:
             return jsonify({'error': 1,
                             'reason': 'token is required'}), 403
         try:
-            payload = jwt.decode(request.json.get('token'))
+            jwt.decode(token,
+                       application.config['SECURE_KEY'],
+                       algorithms=["HS256"])
         except jwt.exceptions.DecodeError:
             return jsonify({'error': 1,
                             'reason': 'invalid token'}), 403
+
         responce = function(*args, **kwargs)
         return responce
-            
 
     return jwt_wrapper
 
@@ -44,7 +47,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.2.0',
+                    'version': '0.2.3.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
@@ -231,15 +234,33 @@ def send_message(slug):
     user_id = token_payload['id']
 
     current_chat = Chat.query.filter(Chat.slug == slug).first()
-    print(dir(current_chat.users))
-    new_message = Message(content=recieved_content,
-                          chat=current_chat.id,
-                          author=user_id)
-    database.session.add(new_message)
-    database.session.commit()
 
-    return jsonify({'error': 0,
-                    'reason': 'sended message to server'}), 201
+    relation_user = Users_to_chats_relation.user
+    relation_chat = Users_to_chats_relation.chat
+
+    raw_relation = Users_to_chats_relation.query
+    user_relation = raw_relation.filter(relation_user == user_id)
+    chat_relation = user_relation.filter(relation_chat == current_chat.id)
+    filtered_relation = chat_relation.first()
+
+    print(dir(current_chat.users))
+    print(current_chat.users)
+    print(filtered_relation)
+
+    if filtered_relation in current_chat.users:
+        new_message = Message(content=recieved_content,
+                              chat=current_chat.id,
+                              author=user_id)
+        database.session.add(new_message)
+        database.session.commit()
+
+        return jsonify({'error': 0,
+                        'reason': 'sended message to server'}), 201
+
+    else:
+        return jsonify({'error': 1,
+                        'reason': 'can\'t send message in view mode',
+                        'additional': 'enter chat to send message'}), 403
 
 
 @application.route('/refresh', methods=['PATCH'], endpoint='refresh_token')

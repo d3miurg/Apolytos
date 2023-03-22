@@ -27,9 +27,19 @@ def require_jwt(function):
                                  application.config['SECURE_KEY'],
                                  algorithms=["HS256"])
             expiration_timestamp = payload.get('exp')
+            refresh_flag = payload.get('refresh')
+            # user_id = payload.get('id')
         except jwt.exceptions.DecodeError:
             return jsonify({'error': 1,
                             'reason': 'invalid token'}), 403
+
+        if refresh_flag:
+            return jsonify({'error': 1,
+                            'reason': 'refresh token given as auth'}), 403
+
+        if not isinstance(float, expiration_timestamp):
+            return jsonify({'error': 1,
+                            'reason': 'token doesn\'t exipration date'}), 403
 
         if current_timestamp < expiration_timestamp:
             responce = function(*args, **kwargs)
@@ -53,7 +63,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.3.0',
+                    'version': '0.2.4.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200

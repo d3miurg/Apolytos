@@ -18,7 +18,6 @@ import jwt
 def require_jwt(function):
     def jwt_wrapper(*args, **kwargs):
         token = request.json.get('token')
-        current_timestamp = datetime.now().timestamp()
         if not token:
             return jsonify({'error': 1,
                             'reason': 'token is required'}), 403
@@ -27,29 +26,49 @@ def require_jwt(function):
                                  application.config['SECURE_KEY'],
                                  algorithms=["HS256"])
             expiration_timestamp = payload.get('exp')
-            refresh_flag = payload.get('refresh')
-            # user_id = payload.get('id')
+            password = payload.get('password')
+            user_id = payload.get('id')
         except jwt.exceptions.DecodeError:
             return jsonify({'error': 1,
                             'reason': 'invalid token'}), 403
+        except jwt.exceptions.ExpiredSignatureError:
+            return jsonify({'error': 1,
+                            'reason': 'token expired'}), 403
 
-        if refresh_flag:
+        if not user_id:
+            return jsonify({'error': 1,
+                            'reason': 'empty token'}), 403
+
+        if password:
             return jsonify({'error': 1,
                             'reason': 'refresh token given as auth'}), 403
 
         if not isinstance(float, expiration_timestamp):
+            reason = 'token doesn\'t have exipration date'
             return jsonify({'error': 1,
-                            'reason': 'token doesn\'t exipration date'}), 403
+                            'reason': reason}), 403
 
-        if current_timestamp < expiration_timestamp:
-            responce = function(*args, **kwargs)
-            return responce
-        else:
-            return jsonify({'error': 1,
-                            'reason': 'token expired'}), 403
+        responce = function(*args, **kwargs)
+        return responce
 
     return jwt_wrapper
 
+
+def create_tokens(user):
+    appconfig = application.config
+    current_timestamp = datetime.now().timestamp()
+    auth_expiration_timestamp = current_timestamp + appconfig['AUTH_LIFETIME']
+    refresh_expiration_timestamp = current_timestamp + appconfig['REFRESH_LIFETIME']
+
+    auth_token = jwt.encode({'id': user.id,
+                             'exp': auth_expiration_timestamp},
+                            appconfig['SECURE_KEY'])
+    refresh_token = jwt.encode({'id': user.id,
+                                'password': user.password,
+                                'exp': refresh_expiration_timestamp},
+                               appconfig['SECURE_KEY'])
+
+    return auth_token, refresh_token
 
 @application.route('/', endpoint='index')
 def index():
@@ -63,7 +82,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.4.0',
+                    'version': '0.2.5.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
@@ -154,18 +173,7 @@ def login():
         return jsonify({'error': 1,
                         'reason': 'invalid password'}), 401
 
-    appconfig = application.config
-    current_timestamp = datetime.now().timestamp()
-    auth_expiration_timestamp = current_time + appconfig['AUTH_LIFETIME']
-    refresh_expiration_timestamp = current_time + appconfig['REFRESH_LIFETIME']
-
-    auth_token = jwt.encode({'id': recieved_user.id,
-                             'exp': auth_expiration_timestamp},
-                            appconfig['SECURE_KEY'])
-    refresh_token = jwt.encode({'id': recieved_user.id,
-                                'refresh': True,
-                                'exp': refresh_expiration_timestamp},
-                               appconfig['SECURE_KEY'])
+    auth_token, refresh_token = create_tokens(recieved_user)
 
     return jsonify({'error': 0,
                     'reason': 'successful login',
@@ -285,9 +293,38 @@ def refresh_token():
     return jsonify({'error': 1,
                     'reason': 'not implemented'}), 501
 
-    token = request.args.get('token')
+    token = request.json.get('token')
+    try:
+        payload = jwt.decode(token,
+                             application.config['SECURE_KEY'],
+                             algorithms=['HS256'])
+    except jwt.exceptions.DecodeError:
+        return jsonify({'error': 1,
+                        'reason': 'invalid token'}), 403
+    except jwt.exceptions.ExpiredSignatureError:
+        return jsonify({'error': 1,
+                        'reason': 'token expired'}), 403
+
+    user_id = payload.get('id')
+    password = payload.get('password')
+
+    if not user_id:
+        return jsonify({'error': 1,
+                        'reason': 'invalid token payload'}), 403
+
+    user = User.query.filter(User.id == user_id).first()
+
+    if user.password != password:
+        return jsonify({'error': 1,
+                        'reason': 'invalid token',
+                        'additional': 'server don\'t recieve fake tokens'})
+
+    auth_token, refresh_token = create_tokens(user)
     return jsonify({'error': 0,
-                    'reason': 'sended message to server'})
+                    'reason': 'refreshed',
+                    'auth_token': auth_token,
+                    'refresh_token': refresh_token}), 200
+
 
 @application.errorhandler(400)
 def bad_request(e):

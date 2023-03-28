@@ -14,9 +14,8 @@ import jwt
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_MIME-%D1%82%D0%B8%D0%BF%D0%BE%D0%B2
 
-
 def require_jwt(function):
-    def jwt_wrapper(*args, **kwargs):
+    def _wrapper(*args, **kwargs):
         token = request.json.get('token')
         if not token:
             return jsonify({'error': 1,
@@ -39,7 +38,7 @@ def require_jwt(function):
             return jsonify({'error': 1,
                             'reason': 'empty token'}), 403
 
-        if password:
+        if password and not request.base_url.endswith('/refresh'):
             return jsonify({'error': 1,
                             'reason': 'refresh token given as auth'}), 403
 
@@ -51,14 +50,35 @@ def require_jwt(function):
         responce = function(*args, **kwargs)
         return responce
 
-    return jwt_wrapper
+    return _wrapper
+
+
+def check_requirements(required_keys, url_encoded=False):
+    def check_constructor(function):
+        def _wrapper(*args, **kwargs):
+            request_keys = request.args
+            if not url_encoded:
+                request_keys = request.json
+            value_list = [request_keys.get(key) for key in required_keys]
+            key_value_dict = dict(zip(value_list, required_keys))
+            if None in value_list:
+                reason = f'key "{key_value_dict[None]}" is required'
+                return jsonify({'error': 1,
+                                'reason': reason}), 400
+
+            responce = function(*args, **kwargs)
+            return responce
+
+        return _wrapper
+
+    return check_constructor
 
 
 def create_tokens(user):
     appconfig = application.config
-    current_timestamp = datetime.now().timestamp()
-    auth_expiration_timestamp = current_timestamp + appconfig['AUTH_LIFETIME']
-    refresh_expiration_timestamp = current_timestamp + appconfig['REFRESH_LIFETIME']
+    timestamp = datetime.now().timestamp()
+    auth_expiration_timestamp = timestamp + appconfig['AUTH_LIFETIME']
+    refresh_expiration_timestamp = timestamp + appconfig['REFRESH_LIFETIME']
 
     auth_token = jwt.encode({'id': user.id,
                              'exp': auth_expiration_timestamp},
@@ -69,6 +89,7 @@ def create_tokens(user):
                                appconfig['SECURE_KEY'])
 
     return auth_token, refresh_token
+
 
 @application.route('/', endpoint='index')
 def index():
@@ -89,13 +110,11 @@ def index():
 
 
 @application.route('/teapod', methods=['GET'], endpoint='teapod')
+@check_requirements(required_keys=['coffee'], url_encoded=True)
 def teapod():
     additional = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')
-    if not coffee_type:
-        return jsonify({'error': 1,
-                        'reason': 'specify coffee type'} | additional), 418
-    elif coffee_type == 'tea':
+    if coffee_type == 'tea':
         return jsonify({'error': 1,
                         'reason': 'only coffee'} | additional), 406
     elif coffee_type == 'coffee':
@@ -114,24 +133,16 @@ def teapod():
 
 
 @application.route('/auth', methods=['POST'], endpoint='register')
+@check_requirements(required_keys=['username', 'password', 'slug'])
 def register():
     username = request.json.get('username')
     password = request.json.get('password')
     slug = request.json.get('slug')
-    if not password:
-        return jsonify({'error': 1,
-                        'reason': 'specify password',
-                        'additional': 'SHA256 hexdigest is recommended'}), 400
 
-    elif len(password) != 64:
+    if len(password) != 64:
         return jsonify({'error': 1,
                         'reason': 'invalid password type',
                         'additional': 'SHA256 hexdigest is recommended'}), 400
-
-    if None in (username, slug):
-        return jsonify({'error': 1,
-                        'reason': 'incomplete form',
-                        'additional': 'check for "username" and "slug"'}), 400
 
     new_user = User(username=username,
                     password=password,

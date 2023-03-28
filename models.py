@@ -28,7 +28,8 @@ class User(database.Model):
     status = database.Column(database.String(3), default='act')
     chats = database.relationship('Users_to_chats_relation',
                                   back_populates='user_relation')
-    messages = database.relationship('Message')
+    messages = database.relationship('Message',
+                                     back_populates='author_relation')
 
     def __str__(self):
         return self.username
@@ -43,7 +44,7 @@ class Chat(database.Model):
     slug = database.Column(database.String(32))
     users = database.relationship('Users_to_chats_relation',
                                   back_populates='chat_relation')
-    messages = database.relationship('Message')
+    messages = database.relationship('Message', back_populates='chat_relation')
 
     def __str__(self):
         return self.slug
@@ -57,6 +58,9 @@ class Message(database.Model):
     content = database.Column(database.String(2048))
     author = database.Column(database.Integer, database.ForeignKey('users.id'))
     chat = database.Column(database.Integer, database.ForeignKey('chats.id'))
+    author_relation = database.relationship('User',
+                                            back_populates='messages')
+    chat_relation = database.relationship('Chat', back_populates='messages')
 
     def __str__(self):
         return self.content

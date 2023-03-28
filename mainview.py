@@ -14,6 +14,7 @@ import jwt
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_MIME-%D1%82%D0%B8%D0%BF%D0%BE%D0%B2
 
+
 def require_jwt(function):
     def _wrapper(*args, **kwargs):
         token = request.json.get('token')
@@ -42,7 +43,7 @@ def require_jwt(function):
             return jsonify({'error': 1,
                             'reason': 'refresh token given as auth'}), 403
 
-        if not isinstance(float, expiration_timestamp):
+        if not isinstance(expiration_timestamp, float):
             reason = 'token doesn\'t have exipration date'
             return jsonify({'error': 1,
                             'reason': reason}), 403
@@ -53,11 +54,11 @@ def require_jwt(function):
     return _wrapper
 
 
-def check_requirements(required_keys, url_encoded=False):
+def check_requirements(required_keys):
     def check_constructor(function):
         def _wrapper(*args, **kwargs):
             request_keys = request.args
-            if not url_encoded:
+            if request.method != 'GET':
                 request_keys = request.json
             value_list = [request_keys.get(key) for key in required_keys]
             key_value_dict = dict(zip(value_list, required_keys))
@@ -103,14 +104,14 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.5.0',
+                    'version': '0.2.6.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
 
 
 @application.route('/teapod', methods=['GET'], endpoint='teapod')
-@check_requirements(required_keys=['coffee'], url_encoded=True)
+@check_requirements(required_keys=['coffee'])
 def teapod():
     additional = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')
@@ -154,6 +155,7 @@ def register():
 
 
 @application.route('/auth', methods=['GET'], endpoint='login')
+@check_requirements(required_keys=['password'])
 def login():
     username = request.args.get('username')
     password = request.args.get('password')
@@ -204,6 +206,7 @@ def chatlist():
 
 @application.route('/chats', methods=['POST'], endpoint='create_chat')
 @require_jwt
+@check_requirements(required_keys=['name', 'slug'])
 def create_chat():
     name = request.json.get('name')
     slug = request.json.get('slug')
@@ -225,6 +228,7 @@ def create_chat():
 
 @application.route('/chats', methods=['PUT'], endpoint='enter_chat')
 @require_jwt
+@check_requirements(required_keys=['slug'])
 def enter_chat():
     slug = request.json.get('slug')
     token_payload = jwt.decode(request.json['token'],
@@ -242,22 +246,31 @@ def enter_chat():
 
 
 @application.route('/chats/<slug>', methods=['GET'], endpoint='chat')
+@check_requirements(required_keys=['count'])
 def chat(slug):
     count = request.args.get('count')
     if isinstance(count, int):
         return jsonify({'error': 1,
                         'reason': 'specify count of messages'}), 400
 
-    last_messages = Message.query.order_by(Message.id.desc()).slice(0, count)
-    last_messages_content = [[n.content, n.author] for n in last_messages]
+    last_messages = Chat.query.filter(Chat.slug == slug).first().messages
+
+    message_list = [{'content': n.content,
+                     'author': n.author_relation.username}
+                    for n in last_messages]
+    print(message_list)
+
+    # last_messages = Message.query.order_by(Message.id.desc()).slice(0, count)
+    # last_messages_content = [[n.content, n.author] for n in last_messages]
 
     return jsonify({'error': 0,
                     'reason': 'returned messages',
-                    'last_messages': last_messages_content}), 200
+                    'last_messages': message_list}), 200
 
 
 @application.route('/chats/<slug>', methods=['POST'], endpoint='send_message')
 @require_jwt
+@check_requirements(required_keys=['content'])
 def send_message(slug):
     recieved_content = request.json.get('content')
 
@@ -299,11 +312,9 @@ def send_message(slug):
                         'additional': 'enter chat to send message'}), 403
 
 
-@application.route('/refresh', methods=['PATCH'], endpoint='refresh_token')
+@application.route('/refresh', methods=['POST'], endpoint='refresh_token')
+@require_jwt
 def refresh_token():
-    return jsonify({'error': 1,
-                    'reason': 'not implemented'}), 501
-
     token = request.json.get('token')
     try:
         payload = jwt.decode(token,

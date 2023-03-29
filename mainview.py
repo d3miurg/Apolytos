@@ -104,7 +104,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.6.0',
+                    'version': '0.2.8.0',
                     'stack': ['Python 3.10.1',
                               'Flask 2.2.2',
                               'InnoDB 5.7.27-30']}), 200
@@ -258,10 +258,6 @@ def chat(slug):
     message_list = [{'content': n.content,
                      'author': n.author_relation.username}
                     for n in last_messages]
-    print(message_list)
-
-    # last_messages = Message.query.order_by(Message.id.desc()).slice(0, count)
-    # last_messages_content = [[n.content, n.author] for n in last_messages]
 
     return jsonify({'error': 0,
                     'reason': 'returned messages',
@@ -312,27 +308,49 @@ def send_message(slug):
                         'additional': 'enter chat to send message'}), 403
 
 
-@application.route('/refresh', methods=['POST'], endpoint='refresh_token')
+@application.route('/chats/<slug>', methods=['DELETE'], endpoint='leave_chat')
+@require_jwt
+@check_requirements(required_keys=['user_slug'])
+def leave_chat(slug):
+    relation_table = Users_to_chats_relation
+    user_to_leave_slug = request.json.get('user_slug')
+    token = request.json.get('token')
+    token_payload = jwt.decode(token,
+                               application.config['SECURE_KEY'],
+                               algorithms=['HS256'])
+    user_id = token_payload.get('id')
+    current_chat = Chat.query.filter(Chat.slug == slug).first()
+    query_user = User.query.filter(User.slug == user_to_leave_slug).first()
+    relation = relation_table.query
+    chat_relation = relation.filter(relation_table.chat == current_chat.id)
+    user_relation = chat_relation.filter(relation_table.user == query_user.id)
+    admin_relation = chat_relation.filter(relation_table.user == user_id)
+    user_entry = user_relation.first()
+    admin_entry = admin_relation.first()
+    if (user_id == user_entry.user) or (user_id == admin_entry.user):
+        user_relation.delete()
+        database.session.commit()
+
+        return jsonify({'error': 0,
+                        'reason': 'removed user from chat'}), 200
+
+    else:
+        return jsonify({'error': 1,
+                        'reason': 'you can\'t do that'}), 200
+
+
+@application.route('/refresh',
+                   methods=['PATCH', 'POST'],
+                   endpoint='refresh_token')
 @require_jwt
 def refresh_token():
     token = request.json.get('token')
-    try:
-        payload = jwt.decode(token,
-                             application.config['SECURE_KEY'],
-                             algorithms=['HS256'])
-    except jwt.exceptions.DecodeError:
-        return jsonify({'error': 1,
-                        'reason': 'invalid token'}), 403
-    except jwt.exceptions.ExpiredSignatureError:
-        return jsonify({'error': 1,
-                        'reason': 'token expired'}), 403
+    payload = jwt.decode(token,
+                         application.config['SECURE_KEY'],
+                         algorithms=['HS256'])
 
     user_id = payload.get('id')
     password = payload.get('password')
-
-    if not user_id:
-        return jsonify({'error': 1,
-                        'reason': 'invalid token payload'}), 403
 
     user = User.query.filter(User.id == user_id).first()
 

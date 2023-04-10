@@ -9,13 +9,12 @@ from models import Message
 from models import Users_to_chats_relation
 from defs import require_jwt
 from defs import check_requirements
-from defs import create_tokens
+from blueprints.auth import auth_blueprint
 
 import jwt
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BA%D0%BE%D0%B4%D0%BE%D0%B2_%D1%81%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%B8%D1%8F_HTTP
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_MIME-%D1%82%D0%B8%D0%BF%D0%BE%D0%B2
-
 
 @application.route('/', endpoint='index')
 def index():
@@ -29,7 +28,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.8.1',
+                    'version': '0.2.8.2',
                     'stack': {'Python': '3.10.1',
                               'Flask': '2.2.2',
                               'InnoDB': '5.7.27-30',
@@ -57,67 +56,6 @@ def teapod():
     normal_reason = 'making coffee for you, come back later'
     return jsonify({'error': 0,
                     'reason': normal_reason}), 200
-
-
-@application.route('/auth', methods=['POST'], endpoint='register')
-@check_requirements(required_keys=['username', 'password', 'slug'])
-def register():
-    username = request.json.get('username')
-    password = request.json.get('password')
-    slug = request.json.get('slug')
-
-    if len(password) != 64:
-        return jsonify({'error': 1,
-                        'reason': 'invalid password type',
-                        'additional': 'SHA256 hexdigest is recommended'}), 400
-
-    new_user = User(username=username,
-                    password=password,
-                    slug=slug)
-    database.session.add(new_user)
-    database.session.commit()
-    return jsonify({'error': 0,
-                    'reason': 'successful register'}), 201
-
-
-@application.route('/auth', methods=['GET'], endpoint='login')
-@check_requirements(required_keys=['password'])
-def login():
-    username = request.args.get('username')
-    password = request.args.get('password')
-    slug = request.args.get('slug')
-    if slug:
-        recieved_user = User.query.filter(User.slug == slug).first()
-    elif username:
-        found_users = User.query.filter(User.username == username).all()
-        if len(found_users) > 1:
-            user_slugs = [n.slug for n in found_users]
-            return jsonify({'error': 1,
-                            'reason': 'specify slug',
-                            'found_slugs': user_slugs}), 400
-        elif not recieved_user:
-            return jsonify({'error': 1,
-                            'reason': 'user not found'}), 401
-        else:
-            recieved_user = found_users[0]
-    else:
-        return jsonify({'error': 1,
-                        'reason': 'specify slug or username'}), 400
-
-    if recieved_user.status == 'sus':
-        return jsonify({'error': 1,
-                        'reason': 'this account suspended'}), 403
-
-    if (recieved_user.password != password):
-        return jsonify({'error': 1,
-                        'reason': 'invalid password'}), 401
-
-    auth_token, refresh_token = create_tokens(recieved_user)
-
-    return jsonify({'error': 0,
-                    'reason': 'successful login',
-                    'auth_token': auth_token,
-                    'refresh_token': refresh_token}), 200
 
 
 @application.route('/chats', methods=['GET'], endpoint='chatlist')
@@ -321,4 +259,5 @@ def internal_serve_error(e):
 # сообщества
 # посты
 if __name__ == '__main__':
+    application.register_blueprint(auth_blueprint, url_prefix='/auth')
     application.run()

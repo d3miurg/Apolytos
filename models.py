@@ -64,3 +64,13 @@ class Message(database.Model):
 
     def __str__(self):
         return self.content
+
+
+class Comment(database.Model):
+    __tablename__ = 'comments'
+    id = database.Column(database.Integer,
+                         primary_key=True,
+                         autoincrement=True)
+    content = database.Column(database.String(256))
+    author = database.Column(database.Integer, database.ForeignKey('users.id'))
+    target = database.Column(database.String(64))

@@ -11,6 +11,7 @@ from defs import check_requirements
 from defs import create_tokens
 from blueprints.auth import auth_blueprint
 from blueprints.chats import chats_blueprint
+from blueprints.users import users_blueprint
 
 import jwt
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
@@ -24,14 +25,14 @@ def index():
         User.query.first()
         Chat.query.first()
         Message.query.first()
-        Comment.query.first
+        Comment.query.first()
     except exc.InterfaceError:
         return jsonify({'error': 1,
                         'reason': 'database is down'}), 503
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.2.8.3',
+                    'version': '0.3.0.0',
                     'stack': {'Python': '3.10.1',
                               'Flask': '2.2.2',
                               'InnoDB': '5.7.27-30',
@@ -116,6 +117,7 @@ def internal_serve_error(e):
 
 application.register_blueprint(auth_blueprint, url_prefix='/auth')
 application.register_blueprint(chats_blueprint, url_prefix='/chats')
+application.register_blueprint(users_blueprint, url_prefix='/users')
 
 if __name__ == '__main__':
     application.run()

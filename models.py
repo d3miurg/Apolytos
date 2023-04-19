@@ -30,6 +30,7 @@ class User(database.Model):
                                   back_populates='user_relation')
     messages = database.relationship('Message',
                                      back_populates='author_relation')
+    comments = database.relationship('Comment', back_populates='target_object')
 
     def __str__(self):
         return self.username
@@ -73,4 +74,5 @@ class Comment(database.Model):
                          autoincrement=True)
     content = database.Column(database.String(256))
     author = database.Column(database.Integer, database.ForeignKey('users.id'))
-    target = database.Column(database.String(64))
+    target_slug = database.Column(database.String(64))
+    target_object = database.relationship('User', back_populates='comments')

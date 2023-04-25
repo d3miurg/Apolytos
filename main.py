@@ -19,7 +19,7 @@ import jwt
 # https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_MIME-%D1%82%D0%B8%D0%BF%D0%BE%D0%B2
 
 
-@application.route('/', endpoint='index')
+@application.route('/', methods=['GET'], endpoint='index')
 def index():
     try:
         User.query.first()
@@ -32,7 +32,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.3.0.0',
+                    'version': '0.3.0.1',
                     'stack': {'Python': '3.10.1',
                               'Flask': '2.2.2',
                               'InnoDB': '5.7.27-30',
@@ -110,9 +110,9 @@ def method_not_allowed(e):
 
 
 @application.errorhandler(500)
-def internal_serve_error(e):
+def internal_server_error(e):
     return jsonify({'error': 1,
-                    'reason': 'server is down'}), 405
+                    'reason': 'server is down'}), 500
 
 
 application.register_blueprint(auth_blueprint, url_prefix='/auth')

@@ -45,7 +45,7 @@ def login():
             return jsonify({'error': 1,
                             'reason': 'specify slug',
                             'found_slugs': user_slugs}), 400
-        elif not recieved_user:
+        elif not found_users:
             return jsonify({'error': 1,
                             'reason': 'user not found'}), 401
         else:

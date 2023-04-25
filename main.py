@@ -39,9 +39,12 @@ def index():
                               'SQLAlchemy': '2.0.4'}}), 200
 
 
-@application.route('/teapod', methods=['GET'], endpoint='teapod')
+@application.route('/teapod', methods=['GET', 'POST'], endpoint='teapod')
 @check_requirements(required_keys=['coffee'])
 def teapod():
+    if request.method == 'POST':
+        print(request.json.get('user_id'))
+
     additional = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')
     if coffee_type == 'tea':

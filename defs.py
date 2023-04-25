@@ -39,6 +39,7 @@ def require_jwt(function):
             return jsonify({'error': 1,
                             'reason': reason}), 403
 
+        request.json['user_id'] = user_id
         responce = function(*args, **kwargs)
         return responce
 

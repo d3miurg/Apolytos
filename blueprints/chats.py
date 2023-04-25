@@ -1,7 +1,6 @@
 from flask import request
 from flask import jsonify
 from flask import Blueprint
-from app import application
 from app import database
 from models import Chat
 from models import Users_to_chats_relation
@@ -9,8 +8,6 @@ from models import Message
 from models import User
 from defs import require_jwt
 from defs import check_requirements
-
-import jwt
 
 chats_blueprint = Blueprint('chats', __name__)
 
@@ -31,10 +28,7 @@ def chatlist():
 def create_chat():
     name = request.json.get('name')
     slug = request.json.get('slug')
-    token_payload = jwt.decode(request.json['token'],
-                               application.config['SECURE_KEY'],
-                               algorithms=["HS256"])
-    admin_id = token_payload['id']
+    admin_id = request.json.get('user_id')
     new_chat = Chat(name=name, slug=slug)
     database.session.add(new_chat)
     database.session.commit()
@@ -52,10 +46,7 @@ def create_chat():
 @check_requirements(required_keys=['slug'])
 def enter_chat():
     slug = request.json.get('slug')
-    token_payload = jwt.decode(request.json['token'],
-                               application.config['SECURE_KEY'],
-                               algorithms=["HS256"])
-    user_id = token_payload['id']
+    user_id = request.json.get('user_id')
     target_chat = Chat.query.filter(Chat.slug == slug).first()
     new_relation = Users_to_chats_relation(user=user_id,
                                            chat=target_chat.id,
@@ -67,13 +58,7 @@ def enter_chat():
 
 
 @chats_blueprint.route('/<slug>', methods=['GET'], endpoint='chat')
-@check_requirements(required_keys=['count'])
 def chat(slug):
-    count = request.args.get('count')
-    if isinstance(count, int):
-        return jsonify({'error': 1,
-                        'reason': 'specify count of messages'}), 400
-
     last_messages = Chat.query.filter(Chat.slug == slug).first().messages
 
     message_list = [{'content': n.content,
@@ -94,10 +79,7 @@ def send_message(slug):
     if not recieved_content:
         return jsonify({'error': 0,
                         'reason': 'sended message to server'}), 400
-    token_payload = jwt.decode(request.json['token'],
-                               application.config['SECURE_KEY'],
-                               algorithms=['HS256'])
-    user_id = token_payload['id']
+    user_id = request.json.get('user_id')
 
     current_chat = Chat.query.filter(Chat.slug == slug).first()
 
@@ -135,11 +117,7 @@ def send_message(slug):
 def leave_chat(slug):
     relation_table = Users_to_chats_relation
     user_to_leave_slug = request.json.get('user_slug')
-    token = request.json.get('token')
-    token_payload = jwt.decode(token,
-                               application.config['SECURE_KEY'],
-                               algorithms=['HS256'])
-    user_id = token_payload.get('id')
+    user_id = request.json.get('user_id')
     current_chat = Chat.query.filter(Chat.slug == slug).first()
     query_user = User.query.filter(User.slug == user_to_leave_slug).first()
     relation = relation_table.query

@@ -27,28 +27,25 @@ def index():
         Message.query.first()
         Comment.query.first()
     except exc.InterfaceError:
-        return jsonify({'error': 1,
+        return jsonify({'error': '01',
                         'reason': 'database is down'}), 503
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.3.1.0',
+                    'version': '0.3.1.1',
                     'stack': {'Python': '3.10.1',
                               'Flask': '2.2.2',
                               'InnoDB': '5.7.27-30',
                               'SQLAlchemy': '2.0.4'}}), 200
 
 
-@application.route('/teapod', methods=['GET', 'POST'], endpoint='teapod')
+@application.route('/teapod', methods=['GET'], endpoint='teapod')
 @check_requirements(required_keys=['coffee'])
 def teapod():
-    if request.method == 'POST':
-        print(request.json.get('user_id'))
-
     additional = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')
     if coffee_type == 'tea':
-        return jsonify({'error': 1,
+        return jsonify({'error': '02',
                         'reason': 'only coffee'} | additional), 406
     elif coffee_type == 'coffee':
         return jsonify({'coffee': 'coffee',
@@ -57,7 +54,7 @@ def teapod():
 
     available_coffee_types = ['latte', 'americano', 'espresso']
     if coffee_type not in available_coffee_types:
-        return jsonify({'error': 1,
+        return jsonify({'error': '03',
                         'reason': 'cannot make this type'} | additional), 406
 
     normal_reason = 'making coffee for you, come back later'
@@ -81,7 +78,7 @@ def refresh_token():
     user = User.query.filter(User.id == user_id).first()
 
     if user.password != password:
-        return jsonify({'error': 1,
+        return jsonify({'error': 41,
                         'reason': 'invalid token',
                         'additional': 'server don\'t recieve fake tokens'})
 

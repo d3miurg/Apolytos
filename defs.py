@@ -20,23 +20,23 @@ def require_jwt(function):
             password = payload.get('password')
             user_id = payload.get('id')
         except jwt.exceptions.DecodeError:
-            return jsonify({'error': 1,
+            return jsonify({'error': 2,
                             'reason': 'invalid token'}), 403
         except jwt.exceptions.ExpiredSignatureError:
-            return jsonify({'error': 1,
+            return jsonify({'error': 3,
                             'reason': 'token expired'}), 403
 
         if not user_id:
-            return jsonify({'error': 1,
+            return jsonify({'error': 4,
                             'reason': 'empty token'}), 403
 
         if password and not request.base_url.endswith('/refresh'):
-            return jsonify({'error': 1,
+            return jsonify({'error': 5,
                             'reason': 'refresh token given as auth'}), 403
 
         if not isinstance(expiration_timestamp, float):
             reason = 'token doesn\'t have exipration date'
-            return jsonify({'error': 1,
+            return jsonify({'error': 6,
                             'reason': reason}), 403
 
         request.json['user_id'] = user_id
@@ -56,7 +56,7 @@ def check_requirements(required_keys):
             key_value_dict = dict(zip(value_list, required_keys))
             if None in value_list:
                 reason = f'key "{key_value_dict[None]}" is required'
-                return jsonify({'error': 1,
+                return jsonify({'error': 7,
                                 'reason': reason}), 400
 
             responce = function(*args, **kwargs)

@@ -110,7 +110,7 @@ def send_message(slug):
                         'reason': 'sended message to server'}), 201
 
     else:
-        return jsonify({'error': 1,
+        return jsonify({'error': 21,
                         'reason': 'can\'t send message in view mode',
                         'additional': 'enter chat to send message'}), 403
 
@@ -138,5 +138,5 @@ def leave_chat(slug):
                         'reason': 'removed user from chat'}), 200
 
     else:
-        return jsonify({'error': 1,
+        return jsonify({'error': 21,
                         'reason': 'you can\'t do that'}), 200

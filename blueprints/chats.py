@@ -15,14 +15,13 @@ chats_blueprint = Blueprint('chats', __name__)
 @chats_blueprint.route('/', methods=['GET'], endpoint='chatlist')
 def chatlist():
     all_chats = Chat.query.all()
-    print(all_chats[0].messages[0].author)
 
     return jsonify({'error': 0,
                     'reason': 'readed chat list from database',
                     'chatlist': [{'name': n.name,
                                  'slug': n.slug,
-                                 'last_message': {'author': n.messages[0].author,
-                                                  'content': n.messages[0].content}}
+                                 'last_message': {'author': n.messages[-1].author,
+                                                  'content': n.messages[-1].content} if len(n.messages) > 0 else []}
                                  for n in all_chats]}), 200
 
 

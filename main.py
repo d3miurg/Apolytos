@@ -1,6 +1,7 @@
 from app import application
 from flask import request
 from flask import jsonify
+from flask import abort
 from sqlalchemy import exc
 from models import User
 from models import Chat
@@ -27,12 +28,11 @@ def index():
         Message.query.first()
         Comment.query.first()
     except exc.InterfaceError:
-        return jsonify({'error': '01',
-                        'reason': 'database is down'}), 503
+        abort(500)
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.3.2.0',
+                    'version': '0.3.2.1',
                     'stack': {'Python': '3.10.1',
                               'Flask': '2.2.2',
                               'InnoDB': '5.7.27-30',
@@ -92,26 +92,26 @@ def refresh_token():
 @application.errorhandler(400)
 def bad_request(e):
     additional = 'check "Content-Type" header and body spelling'
-    return jsonify({'error': 1,
+    return jsonify({'error': 400,
                     'reason': 'bad request',
                     'additional': additional}), 400
 
 
 @application.errorhandler(404)
 def page_not_found(e):
-    return jsonify({'error': 1,
+    return jsonify({'error': 404,
                     'reason': 'page not found'}), 404
 
 
 @application.errorhandler(405)
 def method_not_allowed(e):
-    return jsonify({'error': 1,
+    return jsonify({'error': 405,
                     'reason': 'invalid method'}), 405
 
 
 @application.errorhandler(500)
 def internal_server_error(e):
-    return jsonify({'error': 1,
+    return jsonify({'error': 500,
                     'reason': 'server is down'}), 500
 
 

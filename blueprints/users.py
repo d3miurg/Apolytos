@@ -6,7 +6,7 @@ from models import User
 users_blueprint = Blueprint('users', __name__)
 
 
-@users_blueprint.route('/<slug>', endpoint='get_profile')
+@users_blueprint.route('/<slug>', methods=['GET'], endpoint='get_profile')
 def get_profile(slug):
     recieved_user = User.query.filter(User.slug == slug).first()
     if not recieved_user:
@@ -21,6 +21,6 @@ def get_profile(slug):
                                'author': comm.author}
                               for comm in recieved_user.comments]}
 
-    return jsonify({'error': '0',
+    return jsonify({'error': 0,
                     'reason': 'got information about the user',
                     'info': user_info})

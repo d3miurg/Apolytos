@@ -2,6 +2,7 @@ from flask import request
 from flask import jsonify
 from flask import Blueprint
 from app import database
+from app import sockets
 from models import Chat
 from models import Users_to_chats_relation
 from models import Message
@@ -16,13 +17,15 @@ chats_blueprint = Blueprint('chats', __name__)
 def chatlist():
     all_chats = Chat.query.all()
 
+    chat_list = [{'name': n.name,
+                  'slug': n.slug,
+                  'last_message': {'author': n.messages[-1].author,
+                                   'content': n.messages[-1].content}
+                  if len(n.messages) > 0 else []}
+                 for n in all_chats]
     return jsonify({'error': 0,
                     'reason': 'readed chat list from database',
-                    'chatlist': [{'name': n.name,
-                                 'slug': n.slug,
-                                 'last_message': {'author': n.messages[-1].author,
-                                                  'content': n.messages[-1].content} if len(n.messages) > 0 else []}
-                                 for n in all_chats]}), 200
+                    'chatlist': chat_list}), 200
 
 
 @chats_blueprint.route('/', methods=['POST'], endpoint='create_chat')
@@ -61,8 +64,10 @@ def enter_chat():
 
 
 @chats_blueprint.route('/<slug>', methods=['GET'], endpoint='chat')
+@check_requirements(required_keys=['count'])
 def chat(slug):
-    last_messages = Chat.query.filter(Chat.slug == slug).first().messages
+    count = int(request.args.get('count'))
+    last_messages = Chat.query.filter(Chat.slug == slug).first().messages[-1:-count:-1]
 
     message_list = [{'content': n.content,
                      'author': n.author_relation.username}
@@ -139,3 +144,9 @@ def leave_chat(slug):
     else:
         return jsonify({'error': 21,
                         'reason': 'you can\'t do that'}), 200
+
+
+@sockets.on('echo')
+def echo(data):
+    with open('echo.txt', 'w') as openfile:
+        openfile.write(data)

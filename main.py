@@ -1,8 +1,9 @@
-from app import application
 from flask import request
 from flask import jsonify
 from flask import abort
 from sqlalchemy import exc
+from app import application
+from app import sockets
 from models import User
 from models import Chat
 from models import Message
@@ -45,7 +46,7 @@ def teapod():
     additional = {'additional': 'latte, americano and espresso is available'}
     coffee_type = request.args.get('coffee')
     if coffee_type == 'tea':
-        return jsonify({'error': '02',
+        return jsonify({'error': -1,
                         'reason': 'only coffee'} | additional), 406
     elif coffee_type == 'coffee':
         return jsonify({'coffee': 'coffee',
@@ -54,7 +55,7 @@ def teapod():
 
     available_coffee_types = ['latte', 'americano', 'espresso']
     if coffee_type not in available_coffee_types:
-        return jsonify({'error': '03',
+        return jsonify({'error': -2,
                         'reason': 'cannot make this type'} | additional), 406
 
     normal_reason = 'making coffee for you, come back later'
@@ -120,4 +121,4 @@ application.register_blueprint(chats_blueprint, url_prefix='/chats')
 application.register_blueprint(users_blueprint, url_prefix='/users')
 
 if __name__ == '__main__':
-    application.run()
+    sockets.run(application)

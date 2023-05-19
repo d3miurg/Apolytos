@@ -1,6 +1,9 @@
 from flask import request
 from flask import jsonify
 from flask import Blueprint
+from hashlib import sha256
+from argon2 import PasswordHasher
+from argon2 import exceptions as argon2exceptions
 from models import User
 from app import database
 from defs import check_requirements
@@ -37,9 +40,19 @@ def login():
         return jsonify({'error': 14,
                         'reason': 'this account suspended'}), 403
 
-    if (recieved_user.password != password):
+    hasher = PasswordHasher()
+
+    try:
+        hasher.verify(recieved_user.password, password)
+
+    except argon2exceptions.VerifyMismatchError:
         return jsonify({'error': 15,
                         'reason': 'invalid password'}), 401
+
+    except argon2exceptions.InvalidHash:
+        return jsonify({'error': 16,
+                        'reason': 'password invalid for new safety policy',
+                        'additional': 'change your password via /auth/'})
 
     auth_token, refresh_token = create_tokens(recieved_user)
 
@@ -56,13 +69,11 @@ def register():
     password = request.json.get('password')
     slug = request.json.get('slug')
 
-    if len(password) != 64:
-        return jsonify({'error': 16,
-                        'reason': 'invalid password type',
-                        'additional': 'SHA256 hexdigest is recommended'}), 400
+    hasher = PasswordHasher()
+    password_hash = hasher.hash(password)
 
     new_user = User(username=username,
-                    password=password,
+                    password=password_hash,
                     slug=slug)
     database.session.add(new_user)
     database.session.commit()

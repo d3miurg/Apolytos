@@ -12,7 +12,6 @@ def get_profile(slug):
     if not recieved_user:
         abort(404)
 
-    # Наверное нужно будет брать около 100 комментариев, и остальные подгружать
     user_info = {'id': recieved_user.id,
                  'username': recieved_user.username,
                  'slug': recieved_user.slug,

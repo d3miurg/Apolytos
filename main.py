@@ -33,7 +33,7 @@ def index():
 
     return jsonify({'error': 0,
                     'reason': 'api is active',
-                    'version': '0.3.2.1',
+                    'version': '0.3.3.0',
                     'stack': {'Python': '3.10.1',
                               'Flask': '2.2.2',
                               'InnoDB': '5.7.27-30',
